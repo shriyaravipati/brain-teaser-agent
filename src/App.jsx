@@ -199,9 +199,9 @@ function App() {
                 )}
 
                 {r.report_text && (
-                  <div className="report-section">
+                  <div className="insight-section">
                     <p className="section-label">Insight</p>
-                    <p>{r.report_text}</p>
+                    <p className="insight-text">{r.report_text}</p>
                   </div>
                 )}
               </div>

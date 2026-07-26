@@ -265,3 +265,24 @@ button[type="submit"]:disabled {
   margin: 0;
   line-height: 1.6;
 }
+
+.insight-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--paper);
+  border-left: 3px solid var(--signal);
+  border-radius: 0 4px 4px 0;
+}
+
+.insight-section .section-label {
+  color: var(--signal);
+}
+
+.insight-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--ink);
+}
