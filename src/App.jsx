@@ -163,12 +163,12 @@ function App() {
             <p className="empty-state">No reports yet.</p>
           )}
           {reports.map((r) => (
-            <div className="card report-card" key={r.id}>
-              <div className="card-tab" style={{ background: 'var(--signal)' }} />
-              <div className="card-body">
-                <h3>{r.week_start} — {r.week_end}</h3>
+            <div className="report-group" key={r.id}>
+              <h3 className="report-week">{r.week_start} — {r.week_end}</h3>
 
-                {r.report_json?.by_type && (
+              {r.report_json?.by_type && (
+                <div className="box">
+                  <p className="box-label">Accuracy by type</p>
                   <div className="type-breakdown">
                     {r.report_json.by_type.map((t) => (
                       <div className="type-row" key={t.type}>
@@ -182,29 +182,29 @@ function App() {
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {r.report_json?.calibration && (
-                  <div className="report-section">
-                    <p className="section-label">Calibration</p>
-                    <p>{r.report_json.calibration}</p>
-                  </div>
-                )}
+              {r.report_json?.calibration && (
+                <div className="box">
+                  <p className="box-label">Calibration</p>
+                  <p className="box-text">{r.report_json.calibration}</p>
+                </div>
+              )}
 
-                {r.report_json?.pattern && (
-                  <div className="report-section">
-                    <p className="section-label">Pattern</p>
-                    <p>{r.report_json.pattern}</p>
-                  </div>
-                )}
+              {r.report_json?.pattern && (
+                <div className="box">
+                  <p className="box-label">Pattern</p>
+                  <p className="box-text">{r.report_json.pattern}</p>
+                </div>
+              )}
 
-                {r.report_text && (
-                  <div className="insight-section">
-                    <p className="section-label">Insight</p>
-                    <p className="insight-text">{r.report_text}</p>
-                  </div>
-                )}
-              </div>
+              {r.report_text && (
+                <div className="box box-insight">
+                  <p className="box-label box-label-insight">Insight</p>
+                  <p className="insight-text">{r.report_text}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>
