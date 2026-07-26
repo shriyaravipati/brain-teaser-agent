@@ -1,5 +1,7 @@
 import os
+import json
 from datetime import date, timedelta
+from collections import defaultdict
 from supabase import create_client
 from anthropic import Anthropic
 
@@ -8,6 +10,24 @@ supabase = create_client(
     os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 )
 claude = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+def compute_by_type(entries):
+    stats = defaultdict(lambda: {"correct": 0, "total": 0, "difficulty_sum": 0})
+    for e in entries:
+        t = e["puzzle_type"]
+        stats[t]["total"] += 1
+        stats[t]["correct"] += 1 if e["is_correct"] else 0
+        stats[t]["difficulty_sum"] += e["difficulty_rating"] or 0
+
+    by_type = []
+    for t, s in stats.items():
+        by_type.append({
+            "type": t,
+            "accuracy": round(100 * s["correct"] / s["total"]),
+            "avg_difficulty": round(s["difficulty_sum"] / s["total"], 1),
+            "count": s["total"],
+        })
+    return sorted(by_type, key=lambda x: -x["accuracy"])
 
 def main():
     today = date.today()
@@ -19,48 +39,58 @@ def main():
         .lte("date", today.isoformat()) \
         .not_.is_("answered_at", "null") \
         .order("date") \
-        .execute()
+        .execute().data
 
-    if not entries.data:
+    if not entries:
         print("No answered puzzles this week — nothing to report on.")
         return
 
-    summary_lines = []
-    for e in entries.data:
-        summary_lines.append(
-            f"- {e['date']} | type: {e['puzzle_type']} | "
-            f"correct: {e['is_correct']} | difficulty rated: {e['difficulty_rating']}/5 | "
-            f"puzzle: {e['puzzle_text'][:100]}"
-        )
-    summary_text = "\n".join(summary_lines)
+    by_type = compute_by_type(entries)
 
-    prompt = f"""Here is one person's brain teaser puzzle data from the past week:
+    detail_lines = "\n".join(
+        f"- {e['date']} | {e['puzzle_type']} | correct: {e['is_correct']} | "
+        f"self-rated difficulty: {e['difficulty_rating']}/5"
+        for e in entries
+    )
+    stats_lines = "\n".join(
+        f"- {t['type']}: {t['accuracy']}% accuracy over {t['count']} puzzle(s), "
+        f"avg self-rated difficulty {t['avg_difficulty']}/5"
+        for t in by_type
+    )
 
-{summary_text}
+    prompt = f"""Per-type stats for the week:
+{stats_lines}
 
-Write a genuine, specific "brain report" analyzing their thinking patterns. Cover:
-1. Which puzzle types they're strongest and weakest at, based on accuracy
-2. Whether their self-rated difficulty matches their actual performance — do they
-   underestimate or overestimate how hard things are for them, and in which categories?
-3. Any real pattern in *how* they seem to approach problems, based on what got right vs wrong
-4. One honest, specific insight — not generic encouragement, something that would only be
-   true of this particular week's data
+Raw daily entries:
+{detail_lines}
 
-Keep it direct and concrete, grounded only in the data above. Do not pad with generic
-praise. 250-400 words."""
+Respond with ONLY valid JSON, no other text, in this exact format:
+{{
+  "calibration": "2-3 sentences on whether their self-rated difficulty matches actual performance, and where they over/underestimate",
+  "pattern": "2-3 sentences on a real pattern in how they seem to approach problems, based on right vs wrong answers",
+  "insight": "1-2 sentences: one honest, specific insight true only of this week's data. No generic encouragement."
+}}"""
 
     response = claude.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=800,
+        max_tokens=600,
         messages=[{"role": "user", "content": prompt}]
     )
 
-    report_text = response.content[0].text.strip()
+    text = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    narrative = json.loads(text)
+
+    report_json = {
+        "by_type": by_type,
+        "calibration": narrative["calibration"],
+        "pattern": narrative["pattern"],
+    }
 
     supabase.table("weekly_reports").insert({
         "week_start": week_start.isoformat(),
         "week_end": today.isoformat(),
-        "report_text": report_text,
+        "report_text": narrative["insight"],
+        "report_json": report_json,
     }).execute()
 
     print("Weekly report generated and saved.")
