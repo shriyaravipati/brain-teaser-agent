@@ -10,6 +10,8 @@ const TYPE_COLORS = {
   verbal: 'var(--verbal)',
 }
 
+const TYPE_ORDER = ['spatial', 'logical', 'lateral thinking', 'numerical', 'verbal']
+
 function normalizeAnswer(str) {
   return str
     .trim()
@@ -30,11 +32,16 @@ function App() {
   const [userAnswer, setUserAnswer] = useState('')
   const [difficulty, setDifficulty] = useState(3)
   const [submitting, setSubmitting] = useState(false)
-  const [reports, setReports] = useState([])
-  const [reportsLoading, setReportsLoading] = useState(false)
+
+  const [report, setReport] = useState(null)
+  const [reportLoading, setReportLoading] = useState(false)
+
+  const [archive, setArchive] = useState([])
+  const [archiveLoading, setArchiveLoading] = useState(false)
 
   useEffect(() => { fetchTodayPuzzle() }, [])
-  useEffect(() => { if (view === 'reports') fetchReports() }, [view])
+  useEffect(() => { if (view === 'reports') fetchLatestReport() }, [view])
+  useEffect(() => { if (view === 'archive') fetchArchive() }, [view])
 
   async function fetchTodayPuzzle() {
     const today = new Date().toISOString().split('T')[0]
@@ -44,12 +51,27 @@ function App() {
     setLoading(false)
   }
 
-  async function fetchReports() {
-    setReportsLoading(true)
+  async function fetchLatestReport() {
+    setReportLoading(true)
     const { data, error } = await supabase
-      .from('weekly_reports').select('*').order('week_end', { ascending: false })
-    if (!error) setReports(data)
-    setReportsLoading(false)
+      .from('weekly_reports')
+      .select('*')
+      .order('week_end', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (!error) setReport(data)
+    setReportLoading(false)
+  }
+
+  async function fetchArchive() {
+    setArchiveLoading(true)
+    const { data, error } = await supabase
+      .from('entries')
+      .select('*')
+      .not('answered_at', 'is', null)
+      .order('date', { ascending: false })
+    if (!error) setArchive(data)
+    setArchiveLoading(false)
   }
 
   async function handleSubmit(e) {
@@ -75,6 +97,14 @@ function App() {
     ? (TYPE_COLORS[todayEntry.puzzle_type] || 'var(--graphite)')
     : 'var(--graphite)'
 
+  // group archive entries by puzzle_type, in a fixed, readable order
+  const archiveByType = TYPE_ORDER
+    .map((type) => ({
+      type,
+      entries: archive.filter((e) => e.puzzle_type === type),
+    }))
+    .filter((group) => group.entries.length > 0)
+
   return (
     <div className="App">
       <h1>Brain Teaser</h1>
@@ -82,6 +112,9 @@ function App() {
       <nav>
         <button className={view === 'today' ? 'active' : ''} onClick={() => setView('today')}>
           Today
+        </button>
+        <button className={view === 'archive' ? 'active' : ''} onClick={() => setView('archive')}>
+          Archive
         </button>
         <button className={view === 'reports' ? 'active' : ''} onClick={() => setView('reports')}>
           Reports
@@ -156,31 +189,71 @@ function App() {
         </>
       )}
 
+      {view === 'archive' && (
+        <div>
+          {archiveLoading && <p className="empty-state">Loading archive...</p>}
+          {!archiveLoading && archiveByType.length === 0 && (
+            <p className="empty-state">No answered puzzles yet.</p>
+          )}
+
+          {archiveByType.map((group) => (
+            <div className="archive-group" key={group.type}>
+              <div className="archive-group-header">
+                <span
+                  className="type-dot"
+                  style={{ background: TYPE_COLORS[group.type] || 'var(--graphite)' }}
+                />
+                <h3 className="archive-group-title">{group.type}</h3>
+                <span className="archive-group-count">{group.entries.length}</span>
+              </div>
+
+              {group.entries.map((e) => (
+                <div className="archive-item" key={e.id}>
+                  <div className="archive-item-top">
+                    <span className="archive-date">{e.date}</span>
+                    <span className={e.is_correct ? 'result-correct' : 'result-incorrect'}>
+                      {e.is_correct ? 'Correct' : 'Not quite'}
+                    </span>
+                  </div>
+                  <p className="archive-puzzle">{e.puzzle_text}</p>
+                  <p className="archive-answer">
+                    You answered: <strong>{e.user_answer}</strong>
+                    {!e.is_correct && <> — correct: {e.correct_answer}</>}
+                  </p>
+                  <p className="difficulty-tag">Rated {e.difficulty_rating}/5</p>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       {view === 'reports' && (
         <div>
-          {reportsLoading && <p className="empty-state">Loading reports...</p>}
-          {!reportsLoading && reports.length === 0 && (
-            <p className="empty-state">No reports yet.</p>
+          {reportLoading && <p className="empty-state">Loading report...</p>}
+          {!reportLoading && !report && (
+            <p className="empty-state">No report yet — generate one from the GitHub Actions tab.</p>
           )}
-          {reports.map((r) => (
-            <div className="report-group" key={r.id}>
-              <h3 className="report-week">{r.week_start} — {r.week_end}</h3>
 
-              {r.report_json?.insight_points?.length > 0 && (
+          {!reportLoading && report && (
+            <div className="report-group">
+              <h3 className="report-week">{report.week_start} — {report.week_end}</h3>
+
+              {report.report_json?.insight_points?.length > 0 && (
                 <div className="insight-headline">
                   <p className="box-label box-label-insight">This week's insight</p>
-                  {r.report_json.insight_points.map((point, i) => (
+                  {report.report_json.insight_points.map((point, i) => (
                     <p className="insight-line" key={i}>{point}</p>
                   ))}
                 </div>
               )}
 
               <div className="report-grid">
-                {r.report_json?.by_type && (
+                {report.report_json?.by_type && (
                   <div className="box">
                     <p className="box-label">Accuracy by type</p>
                     <div className="type-breakdown">
-                      {r.report_json.by_type.map((t) => (
+                      {report.report_json.by_type.map((t) => (
                         <div className="type-row" key={t.type}>
                           <span
                             className="type-dot"
@@ -195,22 +268,22 @@ function App() {
                   </div>
                 )}
 
-                {r.report_json?.calibration && (
+                {report.report_json?.calibration && (
                   <div className="box">
                     <p className="box-label">Calibration</p>
-                    <p className="box-text">{r.report_json.calibration}</p>
+                    <p className="box-text">{report.report_json.calibration}</p>
                   </div>
                 )}
               </div>
 
-              {r.report_json?.pattern && (
+              {report.report_json?.pattern && (
                 <div className="box box-full">
                   <p className="box-label">Pattern</p>
-                  <p className="box-text">{r.report_json.pattern}</p>
+                  <p className="box-text">{report.report_json.pattern}</p>
                 </div>
               )}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
