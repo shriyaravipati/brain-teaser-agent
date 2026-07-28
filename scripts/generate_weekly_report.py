@@ -29,6 +29,22 @@ def compute_by_type(entries):
         })
     return sorted(by_type, key=lambda x: -x["accuracy"])
 
+def shorten(text, max_words=14):
+    words = str(text).split()
+    return text if len(words) <= max_words else " ".join(words[:max_words]) + "..."
+
+def fallback_insight(by_type):
+    # used only if Claude's insight comes back empty/malformed, so the section
+    # never silently disappears
+    if not by_type:
+        return ["Not enough data yet to draw a pattern."]
+    best = by_type[0]
+    worst = by_type[-1]
+    points = [f"Strongest so far: {best['type']} at {best['accuracy']}% accuracy."]
+    if worst["type"] != best["type"]:
+        points.append(f"Weakest so far: {worst['type']} at {worst['accuracy']}% accuracy.")
+    return points
+
 def main():
     today = date.today()
     week_start = today - timedelta(days=7)
@@ -68,12 +84,14 @@ Respond with ONLY valid JSON, no other text, in this exact format:
 {{
   "calibration": "2-3 sentences on whether their self-rated difficulty matches actual performance, and where they over/underestimate",
   "pattern": "2-3 sentences on a real pattern in how they seem to approach problems, based on right vs wrong answers",
-  "insight": ["short standalone statement 1", "short standalone statement 2", "short standalone statement 3"]
+  "insight": ["point 1", "point 2", "point 3"]
 }}
 
-For "insight": give 2-3 SHORT, punchy, standalone statements (each under 20 words) that
-together form one honest, specific insight true only of this week's data. Each statement
-should stand on its own, not connect grammatically to the others. No generic encouragement."""
+For "insight": give exactly 2-3 items, always as a JSON array of strings, never empty.
+Each item must be under 12 words, one single observation, written like a sharp one-line
+note — not a full sentence with clauses. Example style: "Numerical puzzles took longest
+but had zero errors." Together they should add up to one honest, specific insight true
+only of this week's data. No generic encouragement."""
 
     response = claude.messages.create(
         model="claude-sonnet-4-6",
@@ -84,11 +102,22 @@ should stand on its own, not connect grammatically to the others. No generic enc
     text = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     narrative = json.loads(text)
 
+    print("Raw Claude narrative:", narrative)  # visible in Actions logs for debugging
+
+    insight_points = narrative.get("insight")
+    if isinstance(insight_points, str):
+        insight_points = [insight_points]
+    if not isinstance(insight_points, list) or len(insight_points) == 0:
+        insight_points = fallback_insight(by_type)
+    insight_points = [shorten(p) for p in insight_points if str(p).strip()]
+    if not insight_points:
+        insight_points = fallback_insight(by_type)
+
     report_json = {
         "by_type": by_type,
-        "calibration": narrative["calibration"],
-        "pattern": narrative["pattern"],
-        "insight_points": narrative["insight"],
+        "calibration": narrative.get("calibration", ""),
+        "pattern": narrative.get("pattern", ""),
+        "insight_points": insight_points,
     }
 
     supabase.table("weekly_reports").insert({
@@ -97,7 +126,7 @@ should stand on its own, not connect grammatically to the others. No generic enc
         "report_json": report_json,
     }).execute()
 
-    print("Weekly report generated and saved.")
+    print(f"Weekly report generated and saved. Insight points: {insight_points}")
 
 if __name__ == "__main__":
     main()

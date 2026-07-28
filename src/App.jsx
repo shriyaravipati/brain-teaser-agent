@@ -166,45 +166,49 @@ function App() {
             <div className="report-group" key={r.id}>
               <h3 className="report-week">{r.week_start} — {r.week_end}</h3>
 
-              {r.report_json?.by_type && (
-                <div className="box">
-                  <p className="box-label">Accuracy by type</p>
-                  <div className="type-breakdown">
-                    {r.report_json.by_type.map((t) => (
-                      <div className="type-row" key={t.type}>
-                        <span
-                          className="type-dot"
-                          style={{ background: TYPE_COLORS[t.type] || 'var(--graphite)' }}
-                        />
-                        <span className="type-name">{t.type}</span>
-                        <span className="type-stat">{t.accuracy}% accurate</span>
-                        <span className="type-stat">avg felt {t.avg_difficulty}/5</span>
-                      </div>
-                    ))}
-                  </div>
+              {r.report_json?.insight_points?.length > 0 && (
+                <div className="insight-headline">
+                  <p className="box-label box-label-insight">This week's insight</p>
+                  {r.report_json.insight_points.map((point, i) => (
+                    <p className="insight-line" key={i}>{point}</p>
+                  ))}
                 </div>
               )}
 
-              {r.report_json?.calibration && (
-                <div className="box">
-                  <p className="box-label">Calibration</p>
-                  <p className="box-text">{r.report_json.calibration}</p>
-                </div>
-              )}
+              <div className="report-grid">
+                {r.report_json?.by_type && (
+                  <div className="box">
+                    <p className="box-label">Accuracy by type</p>
+                    <div className="type-breakdown">
+                      {r.report_json.by_type.map((t) => (
+                        <div className="type-row" key={t.type}>
+                          <span
+                            className="type-dot"
+                            style={{ background: TYPE_COLORS[t.type] || 'var(--graphite)' }}
+                          />
+                          <span className="type-name">{t.type}</span>
+                          <span className="type-stat">{t.accuracy}%</span>
+                          <span className="type-stat">felt {t.avg_difficulty}/5</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {r.report_json?.calibration && (
+                  <div className="box">
+                    <p className="box-label">Calibration</p>
+                    <p className="box-text">{r.report_json.calibration}</p>
+                  </div>
+                )}
+              </div>
 
               {r.report_json?.pattern && (
-                <div className="box">
+                <div className="box box-full">
                   <p className="box-label">Pattern</p>
                   <p className="box-text">{r.report_json.pattern}</p>
                 </div>
               )}
-
-              {r.report_json?.insight_points?.map((point, i) => (
-                <div className="box box-insight" key={i}>
-                  {i === 0 && <p className="box-label box-label-insight">Insight</p>}
-                  <p className="insight-line">{point}</p>
-                </div>
-              ))}
             </div>
           ))}
         </div>

@@ -26,7 +26,7 @@ body {
 }
 
 .App {
-  max-width: 620px;
+  max-width: 720px;
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
@@ -205,12 +205,53 @@ button[type="submit"]:disabled {
   margin: 0 0 1rem;
 }
 
+.insight-headline {
+  background: var(--ink);
+  border-radius: 6px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.insight-headline .box-label-insight {
+  color: var(--spatial);
+  margin: 0 0 0.75rem;
+}
+
+.insight-line {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+  color: var(--paper);
+}
+
+.insight-line:last-child {
+  margin-bottom: 0;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 560px) {
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .box {
   background: var(--surface);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(28, 36, 48, 0.08);
   padding: 1.5rem 1.75rem;
-  margin-bottom: 1rem;
+}
+
+.box-full {
+  margin-bottom: 0;
 }
 
 .box-label {
@@ -237,8 +278,9 @@ button[type="submit"]:disabled {
 .type-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  font-size: 0.9rem;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
 }
 
 .type-dot {
@@ -256,28 +298,8 @@ button[type="submit"]:disabled {
 
 .type-stat {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--graphite);
-}
-
-.box-insight {
-  background: var(--surface);
-  border-left: 3px solid var(--signal);
-  padding: 1.1rem 1.5rem;
-  margin-bottom: 0.6rem;
-}
-
-.box-label-insight {
-  color: var(--signal);
-}
-
-.insight-line {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.1rem;
-  line-height: 1.4;
-  margin: 0;
-  color: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
