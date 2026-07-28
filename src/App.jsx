@@ -199,12 +199,12 @@ function App() {
                 </div>
               )}
 
-              {r.report_text && (
-                <div className="box box-insight">
-                  <p className="box-label box-label-insight">Insight</p>
-                  <p className="insight-text">{r.report_text}</p>
+              {r.report_json?.insight_points?.map((point, i) => (
+                <div className="box box-insight" key={i}>
+                  {i === 0 && <p className="box-label box-label-insight">Insight</p>}
+                  <p className="insight-line">{point}</p>
                 </div>
-              )}
+              ))}
             </div>
           ))}
         </div>
