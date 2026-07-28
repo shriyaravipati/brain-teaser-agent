@@ -1,3 +1,8 @@
+* {
+  box-sizing: border-box;
+  text-align: left;
+}
+
 :root {
   --paper: #F0F2ED;
   --surface: #FFFFFF;
@@ -15,8 +20,6 @@
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
-
-* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -233,6 +236,7 @@ button[type="submit"]:disabled {
 .report-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 1rem;
   margin-bottom: 1rem;
 }

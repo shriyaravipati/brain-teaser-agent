@@ -34,8 +34,6 @@ def shorten(text, max_words=14):
     return text if len(words) <= max_words else " ".join(words[:max_words]) + "..."
 
 def fallback_insight(by_type):
-    # used only if Claude's insight comes back empty/malformed, so the section
-    # never silently disappears
     if not by_type:
         return ["Not enough data yet to draw a pattern."]
     best = by_type[0]
@@ -102,7 +100,7 @@ only of this week's data. No generic encouragement."""
     text = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     narrative = json.loads(text)
 
-    print("Raw Claude narrative:", narrative)  # visible in Actions logs for debugging
+    print("Raw Claude narrative:", narrative)
 
     insight_points = narrative.get("insight")
     if isinstance(insight_points, str):
@@ -119,6 +117,12 @@ only of this week's data. No generic encouragement."""
         "pattern": narrative.get("pattern", ""),
         "insight_points": insight_points,
     }
+
+    # remove any existing report for this same week so re-runs don't create duplicates
+    supabase.table("weekly_reports") \
+        .delete() \
+        .eq("week_start", week_start.isoformat()) \
+        .execute()
 
     supabase.table("weekly_reports").insert({
         "week_start": week_start.isoformat(),
