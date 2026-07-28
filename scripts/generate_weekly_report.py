@@ -68,8 +68,12 @@ Respond with ONLY valid JSON, no other text, in this exact format:
 {{
   "calibration": "2-3 sentences on whether their self-rated difficulty matches actual performance, and where they over/underestimate",
   "pattern": "2-3 sentences on a real pattern in how they seem to approach problems, based on right vs wrong answers",
-  "insight": "1-2 sentences: one honest, specific insight true only of this week's data. No generic encouragement."
-}}"""
+  "insight": ["short standalone statement 1", "short standalone statement 2", "short standalone statement 3"]
+}}
+
+For "insight": give 2-3 SHORT, punchy, standalone statements (each under 20 words) that
+together form one honest, specific insight true only of this week's data. Each statement
+should stand on its own, not connect grammatically to the others. No generic encouragement."""
 
     response = claude.messages.create(
         model="claude-sonnet-4-6",
@@ -84,12 +88,12 @@ Respond with ONLY valid JSON, no other text, in this exact format:
         "by_type": by_type,
         "calibration": narrative["calibration"],
         "pattern": narrative["pattern"],
+        "insight_points": narrative["insight"],
     }
 
     supabase.table("weekly_reports").insert({
         "week_start": week_start.isoformat(),
         "week_end": today.isoformat(),
-        "report_text": narrative["insight"],
         "report_json": report_json,
     }).execute()
 
